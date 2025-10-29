@@ -1,0 +1,38 @@
+name: Import CSVs to Azure SQL
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # allows manual trigger
+
+jobs:
+  import-data:
+    runs-on: ubuntu-latest
+
+    env:
+      SQL_SERVER: ${{ secrets.SQL_SERVER }}
+      SQL_DB: ${{ secrets.SQL_DB }}
+      SQL_USER: ${{ secrets.SQL_USER }}
+      SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Python packages
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas sqlalchemy pyodbc
+
+    - name: Run ingestion script
+      run: python ingest_to_sql.py

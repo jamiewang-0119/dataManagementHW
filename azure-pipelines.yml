@@ -1,0 +1,43 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  SQL_SERVER: '$(SQL_SERVER)'
+  SQL_DB: '$(SQL_DB)'
+  SQL_USER: '$(SQL_USER)'
+  SQL_PASSWORD: '$(SQL_PASSWORD)'
+
+steps:
+# 1. Install ODBC Driver 18 for SQL Server
+- script: |
+    set -e
+    curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+    curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+    sudo apt-get update
+    sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+  displayName: 'Install ODBC Driver 18 for SQL Server'
+
+# 2. Set up Python environment and dependencies
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.10'
+
+- script: |
+    python -m pip install --upgrade pip
+    pip install pandas sqlalchemy pyodbc
+  displayName: 'Install Python dependencies'
+
+# 3. Run ingestion script with environment variables
+- script: |
+    python ingest_to_sql.py
+  displayName: 'Run ingestion script'
+  env:
+    SQL_SERVER:  $(SQL_SERVER)
+    SQL_DB:      $(SQL_DB)
+    SQL_USER:    $(SQL_USER)
+    SQL_PASSWORD:$(SQL_PASSWORD)
